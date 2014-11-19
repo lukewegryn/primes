@@ -4,7 +4,7 @@
 #include <QMenuBar>
 #include <QMenu>
 #include <QLineEdit>
-
+#include <stringListModel.h>
 class QPushButton;
 class QListView;
 
@@ -27,11 +27,16 @@ class Primes:public QWidget
 		QMenu *fileMenu;
 		QLineEdit *fromValue;
 		QLineEdit *toValue;
-		void abortOperatiion();
 		QListView *displayListView;
 		QAction *startAction;
 		QAction *stopAction;
 		QAction *exitAction;
+		QPushButton *startButton;
+		QPushButton *stopButton;
+		QPushButton *exitButton;
+		StringListModel *listModel;
+		QStringList primeList;
+		bool appendToModel(QString value);
 };
 
 #endif
