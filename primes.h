@@ -15,14 +15,19 @@ class Primes:public QWidget
 
 	public:
 		Primes(QWidget *parent = 0);
-		void *runEratosthenesSieve(void);
-		static void *runEratosthenesSieve_helper(void *context);
+		//void *runEratosthenesSieve(void);
+		//static void *runEratosthenesSieve_helper(void *context);
+	    void emitUpdateModel(QString);
+
+	signals:
+		void updateModel(QString);
 
 	private slots:
 		//void fileClicked();
 		void startClicked();
 		void stopClicked();
 		void exitClicked();
+		void appendToModel(QString);
 		
 	private:
 		QPushButton *createButton(const QString &text, const char *member);
@@ -40,7 +45,7 @@ class Primes:public QWidget
 		StringListModel *listModel;
 		QStringList primeList;
 		QProgressBar *progressBar;
-		bool appendToModel(QString value);
+		pthread_t myThread;
 };
 
 #endif

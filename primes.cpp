@@ -9,27 +9,35 @@
 #include <stringListModel.h>
 #include <QProgressBar>
 #include <QMutex>
+#include <QStreamThreaded.h>
 
 long long int lowerBound;
 long long int upperBound;
 long long int currentPrime;
+
+struct parentVar {
+	Primes* parentPointer;
+};
+
+parentVar parentStruct;
+
 QMutex mutex;
 
- bool Primes::appendToModel(QString value)
+ void Primes::appendToModel(QString value)
  {
  	int row = listModel->rowCount();
 	listModel->insertRows(row, 1);
 	QModelIndex index = listModel->index(row);
 	listModel->setData(index,value);
 	displayListView->setCurrentIndex(index);
-	return true;
  }
 
-void *Primes::runEratosthenesSieve_helper(void *context)
+void Primes::emitUpdateModel(QString value)
 {
-	return ((Primes*)context)->runEratosthenesSieve();
+	emit this->updateModel(value);
 }
-void *Primes::runEratosthenesSieve(void) {
+void* runEratosthenesSieve(void *arg) {
+		QOUT("A" << endl);
       if(lowerBound < 2) lowerBound = 2;
       long long int upperBoundSquareRoot = (long long int)sqrt((double)upperBound);
       bool *isComposite = new bool[upperBound + 1];
@@ -37,7 +45,8 @@ void *Primes::runEratosthenesSieve(void) {
       for (int m = 2; m <= upperBoundSquareRoot; m++) {
             if (!isComposite[m]) {
             			if(m > lowerBound){
-            				QMetaObject::invokeMethod(this, "appendToModel", Qt::QueuedConnection, Q_ARG(QString, QString(m)));
+            				parentStruct.parentPointer->emitUpdateModel(QString::number(m));
+            				QOUT("D" << endl);
                   			}
                   for (int k = m * m; k <= upperBound; k += m)
                         isComposite[k] = true;
@@ -46,7 +55,7 @@ void *Primes::runEratosthenesSieve(void) {
       for (int m = upperBoundSquareRoot; m <= upperBound; m++)
             if (!isComposite[m]){
             	if(m > lowerBound){
-            		QMetaObject::invokeMethod(this, "appendToModel", Qt::QueuedConnection, Q_ARG(QString, QString(m)));
+            		parentStruct.parentPointer->emitUpdateModel(QString::number(m));
               }
               }
       delete [] isComposite;
@@ -56,10 +65,11 @@ void *Primes::runEratosthenesSieve(void) {
 Primes::Primes(QWidget *parent)
 	: QWidget(parent)
 {
-	//primeList << "Hello";
+	parentStruct.parentPointer = this;
+	QOUT(this << "Thread Connect" <<endl);
+	connect(this, SIGNAL(updateModel(QString)), this, SLOT(appendToModel(QString)), Qt::QueuedConnection);
 	listModel = new StringListModel(primeList,this);//(this);
 	displayListView = new QListView;//(this);
-	//listModel->setStringList(primeList);
 	displayListView->setModel(listModel);
 
 	menuBar = new QMenuBar(this);
@@ -83,7 +93,6 @@ Primes::Primes(QWidget *parent)
 	//toValue->setAlignment(Qt::AlignLeft);
 
 	mainLabel->setText("How many primes numbers are there?");
-
 	connect(exitAction, SIGNAL(triggered()), this, SLOT(exitClicked()));
 	connect(startAction, SIGNAL(triggered()), this, SLOT(startClicked()));
 	connect(stopAction, SIGNAL(triggered()), this, SLOT(stopClicked()));
@@ -120,6 +129,7 @@ Primes::Primes(QWidget *parent)
 QPushButton *Primes::createButton(const QString &text, const char *member)
 {
 	QPushButton *button = new QPushButton(text);
+	QOUT(button << "button Connect" <<endl);
 	connect(button, SIGNAL(clicked()), this, member);
 	return button;
 }
@@ -131,15 +141,14 @@ void Primes::exitClicked()
 
 void Primes::startClicked()
 {
+
 	stopButton->setEnabled(true);
 	stopAction->setEnabled(true);
 	progressBar->setVisible(true);
-	int i;
 	lowerBound = fromValue->text().toULongLong();
     upperBound = toValue->text().toULongLong();
-	pthread_t thread_tid[1];
-	pthread_create(&thread_tid[0], NULL, &Primes::runEratosthenesSieve_helper, (void*)i);
-	pthread_join(thread_tid[0], NULL);
+	pthread_create(&myThread, NULL, runEratosthenesSieve, NULL);
+	//pthread_join(thread_tid[0], NULL);
 
 	startButton->setEnabled(false);
 	startAction->setEnabled(false);

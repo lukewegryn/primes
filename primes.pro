@@ -9,5 +9,7 @@ QT += widgets
 LIBS += -pthread
 
 # Input
-HEADERS += primes.h stringListModel.h
-SOURCES += main.cpp primes.cpp stringListModel.cpp
+HEADERS += primes.h stringListModel.h QStreamThreaded.h
+SOURCES += main.cpp primes.cpp stringListModel.cpp QStreamThreaded.cpp
+
+CONFIG += debug
