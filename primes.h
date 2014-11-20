@@ -5,6 +5,7 @@
 #include <QMenu>
 #include <QLineEdit>
 #include <stringListModel.h>
+#include <QProgressBar>
 class QPushButton;
 class QListView;
 
@@ -36,6 +37,7 @@ class Primes:public QWidget
 		QPushButton *exitButton;
 		StringListModel *listModel;
 		QStringList primeList;
+		QProgressBar *progressBar;
 		bool appendToModel(QString value);
 };
 

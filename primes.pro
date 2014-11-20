@@ -6,6 +6,7 @@ TEMPLATE = app
 TARGET = primes
 INCLUDEPATH += .
 QT += widgets
+LIBS += -pthread
 
 # Input
 HEADERS += primes.h stringListModel.h

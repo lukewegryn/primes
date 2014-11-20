@@ -7,6 +7,13 @@
 #include <QLabel>
 #include <pthread.h>
 #include <stringListModel.h>
+#include <QProgressBar>
+#include <QMutex>
+
+long long int lowerBound;
+long long int upperBound;
+long long int currentPrime;
+QMutex mutex;
 
  bool Primes::appendToModel(QString value)
  {
@@ -18,10 +25,34 @@
 	return true;
  }
 
+ void* runEratosthenesSieve(void* arg) {
+      if(lowerBound < 2) lowerBound = 2;
+      long long int upperBoundSquareRoot = (long long int)sqrt((double)upperBound);
+      bool *isComposite = new bool[upperBound + 1];
+      memset(isComposite, 0, sizeof(bool) * (upperBound + 1));
+      for (int m = 2; m <= upperBoundSquareRoot; m++) {
+            if (!isComposite[m]) {
+            			if(m > lowerBound){
+                  			//appendToModel(QString::number(m));
+                  			}
+                  for (int k = m * m; k <= upperBound; k += m)
+                        isComposite[k] = true;
+            }
+      }
+      for (int m = upperBoundSquareRoot; m <= upperBound; m++)
+            if (!isComposite[m]){
+            	if(m > lowerBound){
+                  //appendToModel(QString::number(m));
+              }
+              }
+      delete [] isComposite;
+      return 0;
+}
+
 Primes::Primes(QWidget *parent)
 	: QWidget(parent)
 {
-	primeList << "Hello";
+	//primeList << "Hello";
 	listModel = new StringListModel(primeList,this);//(this);
 	displayListView = new QListView;//(this);
 	//listModel->setStringList(primeList);
@@ -34,9 +65,13 @@ Primes::Primes(QWidget *parent)
 	exitAction = fileMenu->addAction(tr("E&xit"));
 	menuBar->addMenu(fileMenu);
 
+	progressBar = new QProgressBar;
+	progressBar->setVisible(false);
+
 	QLabel *mainLabel = new QLabel;
 	QLabel *fromLabel = new QLabel("From: ");
 	QLabel *toLabel = new QLabel("To: ");
+	QLabel *numberOfPrimes = new QLabel("Number of Primes: ");
 
 	fromValue = new QLineEdit;
 	toValue = new QLineEdit;
@@ -67,9 +102,11 @@ Primes::Primes(QWidget *parent)
 	mainLayout->addWidget(toValue,  2,7,1,3);
 
 	mainLayout->addWidget(displayListView,3,0,1,12);
-	mainLayout->addWidget(startButton,4,0,1,4);
-	mainLayout->addWidget(stopButton, 4,4,1,4);
-	mainLayout->addWidget(exitButton, 4,8,1,4);
+	mainLayout->addWidget(progressBar,4,0,1,12);
+	mainLayout->addWidget(numberOfPrimes,5,0,1,6);
+	mainLayout->addWidget(startButton,6,0,1,4);
+	mainLayout->addWidget(stopButton, 6,4,1,4);
+	mainLayout->addWidget(exitButton, 6,8,1,4);
 
 	//connect(signalMapper, SIGNAL(mapped(QString)), this, SIGNAL(clicked(QString)));
 	setLayout(mainLayout);
@@ -92,9 +129,16 @@ void Primes::startClicked()
 {
 	stopButton->setEnabled(true);
 	stopAction->setEnabled(true);
+	progressBar->setVisible(true);
+	int i;
+	lowerBound = fromValue->text().toULongLong();
+    upperBound = toValue->text().toULongLong();
+	pthread_t thread_tid[1];
+	pthread_create(&thread_tid[0], NULL, runEratosthenesSieve, (void*)i);
+	pthread_join(thread_tid[0], NULL);
+
 	startButton->setEnabled(false);
 	startAction->setEnabled(false);
-	appendToModel("Trial");
 }
 
 void Primes::stopClicked()
@@ -103,5 +147,6 @@ void Primes::stopClicked()
 	stopButton->setEnabled(false);
 	startAction->setEnabled(true);
 	stopAction->setEnabled(false);
+	progressBar->setVisible(false);
 }
 
