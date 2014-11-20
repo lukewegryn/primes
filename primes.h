@@ -6,6 +6,7 @@
 #include <QLineEdit>
 #include <stringListModel.h>
 #include <QProgressBar>
+#include <QLabel>
 class QPushButton;
 class QListView;
 
@@ -17,17 +18,20 @@ class Primes:public QWidget
 		Primes(QWidget *parent = 0);
 		//void *runEratosthenesSieve(void);
 		//static void *runEratosthenesSieve_helper(void *context);
-	    void emitUpdateModel(QString);
 
 	signals:
-		void updateModel(QString);
+		void goUpdateModel(QString);
+		void goUpdateBar(int);
+		void goUpdateLabel(QString);
 
-	private slots:
+	public slots:
 		//void fileClicked();
 		void startClicked();
 		void stopClicked();
 		void exitClicked();
 		void appendToModel(QString);
+		void updateBar(int);
+		void updateLabel(QString);
 		
 	private:
 		QPushButton *createButton(const QString &text, const char *member);
@@ -45,7 +49,9 @@ class Primes:public QWidget
 		StringListModel *listModel;
 		QStringList primeList;
 		QProgressBar *progressBar;
+		QLabel* numberOfPrimes;
 		pthread_t myThread;
+		void clearModel();
 };
 
 #endif
