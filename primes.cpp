@@ -12,9 +12,10 @@
 #include <QStreamThreaded.h>
 #include <unistd.h>
 
-long long int lowerBound;
-long long int upperBound;
-long long int currentPrime;
+quint64 lowerBound;
+quint64 upperBound;
+quint64 currentPrime;
+
 
 Primes* parentPointer;
 
@@ -48,17 +49,32 @@ void Primes::updateLabel(QString value)
 	numberOfPrimes->setText(output);
 }
 
+void cleanupThread(void *arg)
+{
+	bool* memPointer = (bool *)arg;
+	delete [] memPointer;
+	QOUT("Deleted Memory" << endl);
+	//delete memPointer;
+}
 void* runEratosthenesSieve(void *arg) {
 	  int counter = 0;
 	  int primesFound = 0;
 	  double progress;
+	  pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
+	  pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL);
 	  //parentPointer->progressBar->setMinimum(lowerBound);
 	  //parentPointer->progressBar->setMaximum(upperBound);
       if(lowerBound < 2) lowerBound = 2;
       long long int upperBoundSquareRoot = (long long int)sqrt((double)upperBound);
       bool *isComposite = new bool[upperBound + 1];
+      //pthread_cleanup_push(cleanupThread,isComposite);
       memset(isComposite, 0, sizeof(bool) * (upperBound + 1));
       for (int m = 2; m <= upperBoundSquareRoot; m++) {
+      	if(parentPointer->exitThread)
+      	{
+      		delete [] isComposite;
+      		pthread_exit(0);
+      	}
             if (!isComposite[m]) {
             			if(m > lowerBound){
             				progress = double(counter)/double(upperBound);
@@ -74,6 +90,11 @@ void* runEratosthenesSieve(void *arg) {
             counter++;
       }
       for (int m = upperBoundSquareRoot; m <= upperBound; m++){
+            if(parentPointer->exitThread)
+            {
+            	delete [] isComposite;
+      			pthread_exit(0);
+            }
             if (!isComposite[m]){
             	if(m > lowerBound){
             		parentPointer->goUpdateModel(QString::number(m));
@@ -87,14 +108,17 @@ void* runEratosthenesSieve(void *arg) {
               //usleep(10);
           }
       delete [] isComposite;
+     // pthread_cleanup_pop(0);
       parentPointer->goUpdateBar(100);
       parentPointer->stopClicked();
+      pthread_exit(0);
       return 0;
 }
 
 Primes::Primes(QWidget *parent)
 	: QWidget(parent)
 {
+	exitThread = false;
 	parentPointer = this;
 	QOUT(this << "Thread Connect" <<endl);
 	connect(this, SIGNAL(goUpdateModel(QString)), this, SLOT(appendToModel(QString)),Qt::BlockingQueuedConnection);
@@ -168,11 +192,13 @@ QPushButton *Primes::createButton(const QString &text, const char *member)
 
 void Primes::exitClicked()
 {
+	exitThread = true;
 	this->close();
 }
 
 void Primes::startClicked()
 {
+	exitThread = false;
 	clearModel();
 	stopButton->setEnabled(true);
 	stopAction->setEnabled(true);
@@ -188,6 +214,7 @@ void Primes::startClicked()
 
 void Primes::stopClicked()
 {
+	exitThread = true;
 	startButton->setEnabled(true);
 	stopButton->setEnabled(false);
 	startAction->setEnabled(true);

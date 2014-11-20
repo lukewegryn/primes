@@ -16,6 +16,7 @@ class Primes:public QWidget
 
 	public:
 		Primes(QWidget *parent = 0);
+		bool exitThread;
 		//void *runEratosthenesSieve(void);
 		//static void *runEratosthenesSieve_helper(void *context);
 
