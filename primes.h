@@ -15,6 +15,8 @@ class Primes:public QWidget
 
 	public:
 		Primes(QWidget *parent = 0);
+		void *runEratosthenesSieve(void);
+		static void *runEratosthenesSieve_helper(void *context);
 
 	private slots:
 		//void fileClicked();

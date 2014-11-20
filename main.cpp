@@ -3,6 +3,7 @@
 #include <QWidget>
 #include "primes.h"
 
+
 int main(int argc, char ** argv) {
     QApplication app(argc, argv);
 

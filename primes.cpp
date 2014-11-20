@@ -25,7 +25,11 @@ QMutex mutex;
 	return true;
  }
 
- void* runEratosthenesSieve(void* arg) {
+void *Primes::runEratosthenesSieve_helper(void *context)
+{
+	return ((Primes*)context)->runEratosthenesSieve();
+}
+void *Primes::runEratosthenesSieve(void) {
       if(lowerBound < 2) lowerBound = 2;
       long long int upperBoundSquareRoot = (long long int)sqrt((double)upperBound);
       bool *isComposite = new bool[upperBound + 1];
@@ -33,7 +37,7 @@ QMutex mutex;
       for (int m = 2; m <= upperBoundSquareRoot; m++) {
             if (!isComposite[m]) {
             			if(m > lowerBound){
-                  			//appendToModel(QString::number(m));
+            				QMetaObject::invokeMethod(this, "appendToModel", Qt::QueuedConnection, Q_ARG(QString, QString(m)));
                   			}
                   for (int k = m * m; k <= upperBound; k += m)
                         isComposite[k] = true;
@@ -42,7 +46,7 @@ QMutex mutex;
       for (int m = upperBoundSquareRoot; m <= upperBound; m++)
             if (!isComposite[m]){
             	if(m > lowerBound){
-                  //appendToModel(QString::number(m));
+            		QMetaObject::invokeMethod(this, "appendToModel", Qt::QueuedConnection, Q_ARG(QString, QString(m)));
               }
               }
       delete [] isComposite;
@@ -134,7 +138,7 @@ void Primes::startClicked()
 	lowerBound = fromValue->text().toULongLong();
     upperBound = toValue->text().toULongLong();
 	pthread_t thread_tid[1];
-	pthread_create(&thread_tid[0], NULL, runEratosthenesSieve, (void*)i);
+	pthread_create(&thread_tid[0], NULL, &Primes::runEratosthenesSieve_helper, (void*)i);
 	pthread_join(thread_tid[0], NULL);
 
 	startButton->setEnabled(false);
