@@ -23,6 +23,7 @@ QMutex mutex;
 
  void Primes::appendToModel(QString value)
  {
+ 
  	int row = listModel->rowCount();
 	listModel->insertRows(row, 1);
 	QModelIndex index = listModel->index(row);
@@ -32,22 +33,23 @@ QMutex mutex;
 
 void Primes::clearModel()
 {
-	int row = listModel->rowCount();
-	listModel->removeRows(0, row);
+		int row = listModel->rowCount();
+		listModel->removeRows(0, row);
 }
 
 void Primes::updateBar(int value)
 {
-	progressBar->setValue(value);
+		progressBar->setValue(value);
 }
 
 void Primes::updateLabel(QString value)
 {
-	QString output;
-	output.append("Number of Primes: ");
-	output.append(value);
-	numberOfPrimes->setText(output);
+		QString output;
+		output.append("Number of Primes: ");
+		output.append(value);
+		numberOfPrimes->setText(output);
 }
+
 
 void cleanupThread(void *arg)
 {
@@ -60,28 +62,20 @@ void* runEratosthenesSieve(void *arg) {
 	  int counter = 0;
 	  int primesFound = 0;
 	  double progress;
-	  pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
-	  pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL);
-	  //parentPointer->progressBar->setMinimum(lowerBound);
-	  //parentPointer->progressBar->setMaximum(upperBound);
+	  //pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
+	  //pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL);
       if(lowerBound < 2) lowerBound = 2;
       long long int upperBoundSquareRoot = (long long int)sqrt((double)upperBound);
       bool *isComposite = new bool[upperBound + 1];
-      //pthread_cleanup_push(cleanupThread,isComposite);
+      pthread_cleanup_push(cleanupThread,isComposite);
       memset(isComposite, 0, sizeof(bool) * (upperBound + 1));
       for (int m = 2; m <= upperBoundSquareRoot; m++) {
-      	if(parentPointer->exitThread)
-      	{
-      		delete [] isComposite;
-      		pthread_exit(0);
-      	}
-            if (!isComposite[m]) {
+        if (!isComposite[m] && !parentPointer->exitThread) {
             			if(m > lowerBound){
             				progress = double(counter)/double(upperBound);
             				parentPointer->goUpdateModel(QString::number(m));
             				parentPointer->goUpdateBar(int(progress*100));
             				primesFound++;
-            				QOUT(primesFound);
             				parentPointer->goUpdateLabel(QString::number(primesFound));
                   			}
                   for (int k = m * m; k <= upperBound; k += m)
@@ -90,12 +84,7 @@ void* runEratosthenesSieve(void *arg) {
             counter++;
       }
       for (int m = upperBoundSquareRoot; m <= upperBound; m++){
-            if(parentPointer->exitThread)
-            {
-            	delete [] isComposite;
-      			pthread_exit(0);
-            }
-            if (!isComposite[m]){
+            if (!isComposite[m] && !parentPointer->exitThread){
             	if(m > lowerBound){
             		parentPointer->goUpdateModel(QString::number(m));
             		progress = double(counter)/double(upperBound);
@@ -107,11 +96,11 @@ void* runEratosthenesSieve(void *arg) {
               counter++;
               //usleep(10);
           }
+      pthread_cleanup_pop(0);
       delete [] isComposite;
-     // pthread_cleanup_pop(0);
       parentPointer->goUpdateBar(100);
-      parentPointer->stopClicked();
-      pthread_exit(0);
+      parentPointer->goStopClicked();
+      //pthread_exit(0);
       return 0;
 }
 
@@ -124,6 +113,7 @@ Primes::Primes(QWidget *parent)
 	connect(this, SIGNAL(goUpdateModel(QString)), this, SLOT(appendToModel(QString)),Qt::BlockingQueuedConnection);
 	connect(this, SIGNAL(goUpdateBar(int)), this, SLOT(updateBar(int)), Qt::BlockingQueuedConnection);
 	connect(this, SIGNAL(goUpdateLabel(QString)), this, SLOT(updateLabel(QString)), Qt::BlockingQueuedConnection);
+	connect(this,SIGNAL(goStopClicked()), this, SLOT(stopClicked()), Qt::BlockingQueuedConnection);
 	listModel = new StringListModel(primeList,this);//(this);
 	displayListView = new QListView;//(this);
 	displayListView->setModel(listModel);
@@ -198,7 +188,6 @@ void Primes::exitClicked()
 
 void Primes::startClicked()
 {
-	exitThread = false;
 	clearModel();
 	stopButton->setEnabled(true);
 	stopAction->setEnabled(true);
@@ -214,7 +203,6 @@ void Primes::startClicked()
 
 void Primes::stopClicked()
 {
-	exitThread = true;
 	startButton->setEnabled(true);
 	stopButton->setEnabled(false);
 	startAction->setEnabled(true);
