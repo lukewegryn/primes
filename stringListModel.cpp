@@ -19,6 +19,14 @@ QVariant StringListModel::data(const QModelIndex &index, int role) const
          return QVariant();
  }
 
+ bool StringListModel::appendToStringList(QStringList listToAdd)
+ {
+        beginInsertRows(QModelIndex(), stringList.count(), stringList.count()+listToAdd.count()-1);
+        stringList.append(listToAdd);
+        endInsertRows();
+        return true;
+ }
+
  bool StringListModel::insertRows(int position, int rows, const QModelIndex &parent)
  {
      beginInsertRows(QModelIndex(), position, position+rows-1);

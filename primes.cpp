@@ -18,17 +18,17 @@ quint64 currentPrime;
 
 
 Primes* parentPointer;
+pthread_t myThread;
 
 QMutex mutex;
 
- void Primes::appendToModel(QString value)
+ void Primes::appendToModel(QStringList value)
  {
- 
- 	int row = listModel->rowCount();
-	listModel->insertRows(row, 1);
+	listModel->appendToStringList(value);
+	/*int row = listModel->rowCount();
 	QModelIndex index = listModel->index(row);
-	listModel->setData(index,value);
-	displayListView->setCurrentIndex(index);
+	displayListView->setCurrentIndex(index);*/
+
  }
 
 void Primes::clearModel()
@@ -39,68 +39,83 @@ void Primes::clearModel()
 
 void Primes::updateBar(int value)
 {
+		//QOUT("Update Bar");
 		progressBar->setValue(value);
 }
 
 void Primes::updateLabel(QString value)
 {
+		//QOUT("Update Label");
 		QString output;
 		output.append("Number of Primes: ");
 		output.append(value);
 		numberOfPrimes->setText(output);
 }
-
-
 void cleanupThread(void *arg)
 {
 	bool* memPointer = (bool *)arg;
 	delete [] memPointer;
 	QOUT("Deleted Memory" << endl);
-	//delete memPointer;
+	//de] memPointer;lete memPointer;
 }
 void* runEratosthenesSieve(void *arg) {
 	  int counter = 0;
 	  int primesFound = 0;
+	  int iterator = 0;
 	  double progress;
-	  //pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
-	  //pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL);
+	  QStringList primesList;
+	  pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
+	  pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL);
       if(lowerBound < 2) lowerBound = 2;
       long long int upperBoundSquareRoot = (long long int)sqrt((double)upperBound);
       bool *isComposite = new bool[upperBound + 1];
       pthread_cleanup_push(cleanupThread,isComposite);
       memset(isComposite, 0, sizeof(bool) * (upperBound + 1));
       for (int m = 2; m <= upperBoundSquareRoot; m++) {
-        if (!isComposite[m] && !parentPointer->exitThread) {
+      	//pthread_testcancel();
+        if (!isComposite[m]) {
             			if(m > lowerBound){
-            				progress = double(counter)/double(upperBound);
-            				parentPointer->goUpdateModel(QString::number(m));
-            				parentPointer->goUpdateBar(int(progress*100));
             				primesFound++;
-            				parentPointer->goUpdateLabel(QString::number(primesFound));
+            				progress = double(counter)/double(upperBound);
+            				primesList.append(QString::number(m));
+            				emit parentPointer->goUpdateBar(int(progress*100));
+            				emit parentPointer->goUpdateLabel(QString::number(primesFound));
                   			}
                   for (int k = m * m; k <= upperBound; k += m)
                         isComposite[k] = true;
             }
             counter++;
       }
+      emit parentPointer->goUpdateModel(primesList);
+      primesList.clear();
       for (int m = upperBoundSquareRoot; m <= upperBound; m++){
-            if (!isComposite[m] && !parentPointer->exitThread){
+            if (!isComposite[m]){
             	if(m > lowerBound){
-            		parentPointer->goUpdateModel(QString::number(m));
-            		progress = double(counter)/double(upperBound);
-            		parentPointer->goUpdateBar(int(progress*100));
             		primesFound++;
-            		parentPointer->goUpdateLabel(QString::number(primesFound));
+            		progress = double(counter)/double(upperBound);
+            		primesList.append(QString::number(m));
+            		if(iterator>10000)
+            		{
+            			QOUT("PARENT" << endl);
+            			emit parentPointer->goUpdateModel(primesList);
+            			//usleep(100000);
+            			usleep(250000);
+            			primesList.clear();
+            			iterator = 0;
+            		}
+            		emit parentPointer->goUpdateBar(int(progress*100));
+            		emit parentPointer->goUpdateLabel(QString::number(primesFound));
               }
               }
               counter++;
+              iterator++;
               //usleep(10);
           }
       pthread_cleanup_pop(0);
       delete [] isComposite;
-      parentPointer->goUpdateBar(100);
-      parentPointer->goStopClicked();
-      //pthread_exit(0);
+      emit parentPointer->goUpdateModel(primesList);
+      emit parentPointer->goStopClicked();
+      pthread_exit(0);
       return 0;
 }
 
@@ -109,11 +124,11 @@ Primes::Primes(QWidget *parent)
 {
 	exitThread = false;
 	parentPointer = this;
-	QOUT(this << "Thread Connect" <<endl);
-	connect(this, SIGNAL(goUpdateModel(QString)), this, SLOT(appendToModel(QString)),Qt::BlockingQueuedConnection);
-	connect(this, SIGNAL(goUpdateBar(int)), this, SLOT(updateBar(int)), Qt::BlockingQueuedConnection);
-	connect(this, SIGNAL(goUpdateLabel(QString)), this, SLOT(updateLabel(QString)), Qt::BlockingQueuedConnection);
-	connect(this,SIGNAL(goStopClicked()), this, SLOT(stopClicked()), Qt::BlockingQueuedConnection);
+	//QOUT(this << "Thread Connect" <<endl);
+	connect(this, SIGNAL(goUpdateModel(QStringList)), this, SLOT(appendToModel(QStringList)),Qt::QueuedConnection);
+	connect(this, SIGNAL(goUpdateBar(int)), this, SLOT(updateBar(int)), Qt::QueuedConnection);
+	connect(this, SIGNAL(goUpdateLabel(QString)), this, SLOT(updateLabel(QString)), Qt::QueuedConnection);
+	connect(this,SIGNAL(goStopClicked()), this, SLOT(stopClicked()), Qt::QueuedConnection);
 	listModel = new StringListModel(primeList,this);//(this);
 	displayListView = new QListView;//(this);
 	displayListView->setModel(listModel);

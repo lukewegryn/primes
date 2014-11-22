@@ -21,16 +21,17 @@ class Primes:public QWidget
 		//static void *runEratosthenesSieve_helper(void *context);
 
 	signals:
-		void goUpdateModel(QString);
+		void goUpdateModel(QStringList);
 		void goUpdateBar(int);
 		void goUpdateLabel(QString);
+		void goStopClicked();
 
 	public slots:
 		//void fileClicked();
 		void startClicked();
 		void stopClicked();
 		void exitClicked();
-		void appendToModel(QString);
+		void appendToModel(QStringList);
 		void updateBar(int);
 		void updateLabel(QString);
 		
@@ -51,7 +52,7 @@ class Primes:public QWidget
 		QStringList primeList;
 		QProgressBar *progressBar;
 		QLabel* numberOfPrimes;
-		pthread_t myThread;
+		//pthread_t myThread;
 		void clearModel();
 };
 
